@@ -20,8 +20,8 @@ Client plugins: not required for MVP entitlements (unlike Better Auth’s dual c
 ## Registration (embed)
 
 ```ts
-import { kyoka } from "kyoka";
-import { stripe } from "@kyoka/stripe";
+import { kyoka } from "@kyoka-js/kyoka";
+import { stripe } from "@kyoka-js/stripe";
 
 export const entitlements = kyoka({
   planStore: "config",
@@ -36,7 +36,7 @@ export const entitlements = kyoka({
 });
 ```
 
-## `@kyoka/stripe` (MVP) — must implement
+## `@kyoka-js/stripe` (MVP) — must implement
 
 | Responsibility | Detail |
 |---|---|

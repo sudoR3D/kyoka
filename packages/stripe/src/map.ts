@@ -1,4 +1,4 @@
-import type { BillingEventInput, SubjectStatus } from "kyoka";
+import type { BillingEventInput, SubjectStatus } from "@kyoka-js/kyoka";
 import type Stripe from "stripe";
 
 export type StripePluginOptions = {

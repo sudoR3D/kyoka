@@ -1,4 +1,4 @@
-import type { KyokaPlugin } from "kyoka";
+import type { KyokaPlugin } from "@kyoka-js/kyoka";
 import Stripe from "stripe";
 import { mapStripeEvent, type StripePluginOptions } from "./map.js";
 
@@ -17,7 +17,7 @@ function json(data: unknown, status = 200): Response {
  */
 export function stripe(options: StripePluginOptions): KyokaPlugin {
   if (!options.webhookSecret) {
-    throw new Error("@kyoka/stripe: webhookSecret is required");
+    throw new Error("@kyoka-js/stripe: webhookSecret is required");
   }
 
   return {

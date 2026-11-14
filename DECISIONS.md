@@ -27,6 +27,8 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 | Self-host default | Mount in app + app DB; no Compose required |
 | OSS boundary | Core + adapters + Stripe plugin + CLI public; cloud private |
 | Package manager | **Bun** workspaces (`packages/kyoka`, `packages/stripe`, …) |
+| npm org / packages | Org **`kyoka-js`** → `@kyoka-js/kyoka`, `@kyoka-js/stripe` |
+| Publish auth | **Trusted Publishing (OIDC)** on GitHub Actions; no long-lived CI npm token |
 
 ## Database adapters
 
@@ -57,7 +59,7 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 | Embed (Node) | In-process `kyoka()` + mount — not HTTP to own process |
 | Node on Cloud (MVP) | Same as Go/Python: `fetch` / curl to hosted API — **no** dedicated cloud client package |
 | JWT verify | Small `verify` helper (or snippet) against JWKS; no API key |
-| Later | Optional thin typed HTTP client (`@kyoka/client` or similar) during Cloud / Docs-SDK track if needed |
+| Later | Optional thin typed HTTP client (`@kyoka-js/client` or similar) during Cloud / Docs-SDK track if needed |
 
 ## Token + auth
 
@@ -116,7 +118,7 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 | Topic | Decision |
 |---|---|
 | Generic events | **Core**, day one |
-| First provider | **Stripe** (`@kyoka/stripe`) |
+| First provider | **Stripe** (`@kyoka-js/stripe`) |
 | Second | Polar (same adapter pattern) |
 | Embed select | `plugins: [stripe()]` |
 | Hosted select | Console dropdown + secrets |

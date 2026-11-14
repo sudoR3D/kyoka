@@ -3,9 +3,9 @@
   "private": true,
   "workspaces": ["packages/*", "examples/*"],
   "scripts": {
-    "build": "bun run --filter kyoka build && bun run --filter @kyoka/stripe build",
-    "test": "bun run --filter kyoka build && bun test ./packages/kyoka/src ./packages/stripe/src",
-    "typecheck": "bun run --filter kyoka typecheck && bun run --filter @kyoka/stripe typecheck"
+    "build": "bun run --filter @kyoka-js/kyoka build && bun run --filter @kyoka-js/stripe build",
+    "test": "bun run --filter @kyoka-js/kyoka build && bun test ./packages/kyoka/src ./packages/stripe/src",
+    "typecheck": "bun run --filter @kyoka-js/kyoka typecheck && bun run --filter @kyoka-js/stripe typecheck"
   },
   "devDependencies": {
     "@types/bun": "latest",

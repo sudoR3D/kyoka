@@ -18,19 +18,19 @@ Prefer opening **`kyoka-cloud`** (parent) in Cursor, not this folder alone.
 
 ```text
 PRODUCT.md … PLAN.md     Product / contracts
-packages/kyoka           Core library (npm: kyoka)
-packages/stripe          Stripe plugin (npm: @kyoka/stripe)
+packages/kyoka           Core library (npm: @kyoka-js/kyoka)
+packages/stripe          Stripe plugin (npm: @kyoka-js/stripe)
 examples/hono            Minimal Hono embed
 docs/history/            Archived handoff briefs
 ```
 
 ## Status
 
-OSS sprints **O1–O3** complete: publishable `kyoka` + `@kyoka/stripe` (v0.1.0). Cloud build starts next (parent `PLAN_HOSTED.md`).
+OSS sprints **O1–O3** complete: publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe` (v0.1.0). Cloud build starts next (parent `PLAN_HOSTED.md`).
 
 ```bash
 bun install
-bun run build   # tsc → dist/ (required before imports of "kyoka")
+bun run build   # tsc → dist/ (required before imports of "@kyoka-js/kyoka")
 bun test
 ```
 
@@ -44,13 +44,23 @@ Example: [examples/hono](./examples/hono).
 
 ## Publish (maintainers)
 
-Packages are **0.1.0**. Publishing uses `.github/workflows/publish.yml` on tags `v*`.
+Packages are **0.1.0** under the npm org [`kyoka-js`](https://www.npmjs.com/org/kyoka-js).
 
-1. Set repo secret `NPM_TOKEN` (npm automation token with publish rights)
-2. `git tag v0.1.0 && git push origin v0.1.0`
-3. Action builds, tests, and `npm publish`s `kyoka` then `@kyoka/stripe`
+**First publish** (once, from a maintainer machine with org access + 2FA):
 
-Bump versions in both `package.json` files before tagging a new release.
+```bash
+bun install && bun run build
+npm login
+cd packages/kyoka && npm publish --access public
+cd ../stripe && npm publish --access public
+```
+
+**Later releases** use GitHub Actions **Trusted Publishing (OIDC)** — no `NPM_TOKEN`:
+
+1. On each package page → Settings → Trusted Publisher → GitHub Actions  
+   - Org/user: `sudoR3D` · Repo: `kyoka` · Workflow: `publish.yml`
+2. `git tag v0.1.1 && git push origin v0.1.1`
+3. `.github/workflows/publish.yml` builds, tests, and publishes via OIDC
 
 Polished stranger-facing docs remain a **later track**.
 

@@ -5,9 +5,9 @@
  * in real apps.
  */
 import { Hono } from "hono";
-import { generateEs256KeyPair, kyoka, mountKyoka } from "kyoka";
-import { memoryAdapter } from "kyoka/adapters/memory";
-import { stripe } from "@kyoka/stripe";
+import { generateEs256KeyPair, kyoka, mountKyoka } from "@kyoka-js/kyoka";
+import { memoryAdapter } from "@kyoka-js/kyoka/adapters/memory";
+import { stripe } from "@kyoka-js/stripe";
 
 const keys = await generateEs256KeyPair();
 const db = memoryAdapter();

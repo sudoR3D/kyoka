@@ -29,8 +29,8 @@ flowchart TB
 
 | Package | Role |
 |---|---|
-| `kyoka` | Core: check, tokens, events, state machine, admin, mounts |
-| `@kyoka/stripe` | Stripe webhook adapter plugin |
+| `@kyoka-js/kyoka` | Core: check, tokens, events, state machine, admin, mounts |
+| `@kyoka-js/stripe` | Stripe webhook adapter plugin |
 | Adapters | **`pg` first** (direct SQL); Prisma / Drizzle / sqlite later as optional adapters |
 | CLI | Generate / migrate schema |
 

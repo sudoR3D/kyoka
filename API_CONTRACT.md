@@ -70,7 +70,7 @@ Creates/links subject + aliases; applies billing state. Idempotent on `idempoten
 
 ## `POST /webhooks/stripe` (plugin)
 
-Raw Stripe body + `Stripe-Signature`. Plugin verifies, maps, calls core `applyBillingEvent`. Not part of core package; registered by `@kyoka/stripe`.
+Raw Stripe body + `Stripe-Signature`. Plugin verifies, maps, calls core `applyBillingEvent`. Not part of core package; registered by `@kyoka-js/stripe`.
 
 ## `GET …/jwks` (or `/.well-known/jwks.json` under mount)
 

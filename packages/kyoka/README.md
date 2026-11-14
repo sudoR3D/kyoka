@@ -1,9 +1,11 @@
-# `kyoka`
+# `@kyoka-js/kyoka`
 
-TypeScript entitlements library: `can(subject, feature)` → JSON (+ JWT in later sprints).
+TypeScript entitlements library: `can(subject, feature)` → JSON + signed JWT.
 
-## Status
-
-OSS sprint O1: config-mode `check` (JSON only), `pg` adapter, mount handler.
+```bash
+npm i @kyoka-js/kyoka
+# optional Stripe plugin
+npm i @kyoka-js/stripe
+```
 
 See repo [PLAN.md](../../PLAN.md), [ARCHITECTURE.md](../../ARCHITECTURE.md), [API_CONTRACT.md](../../API_CONTRACT.md).

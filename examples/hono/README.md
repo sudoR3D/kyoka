@@ -8,7 +8,7 @@ From repo root:
 
 ```bash
 bun install
-bun run --filter kyoka build
+bun run --filter @kyoka-js/kyoka build
 cd examples/hono && bun install && bun run dev
 ```
 

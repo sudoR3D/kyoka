@@ -62,7 +62,7 @@ Policy detail for MVP implementers:
 | subscription deleted / revoked | `free` |
 | period ended while canceling | `free` |
 
-Exact Stripe event names live in `@kyoka/stripe`; core only sees normalized status.
+Exact Stripe event names live in `@kyoka-js/stripe`; core only sees normalized status.
 
 ## Idempotency
 

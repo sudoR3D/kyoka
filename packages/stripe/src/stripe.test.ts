@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import { kyoka } from "kyoka";
+import { kyoka } from "@kyoka-js/kyoka";
 import { memoryAdapter } from "../../kyoka/src/adapter/memory.js";
 import type Stripe from "stripe";
 import { stripe } from "./index.js";
@@ -98,7 +98,7 @@ describe("mapStripeEvent", () => {
   });
 });
 
-describe("@kyoka/stripe webhook", () => {
+describe("@kyoka-js/stripe webhook", () => {
   test("signed subscription event flips check", async () => {
     const db = memoryAdapter();
     const plugin = stripe({

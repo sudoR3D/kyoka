@@ -1,5 +1,5 @@
 {
-  "name": "@kyoka/stripe",
+  "name": "@kyoka-js/stripe",
   "version": "0.1.0",
   "description": "Stripe webhook adapter plugin for Kyoka",
   "license": "MIT",
@@ -20,14 +20,14 @@
     "test": "bun test"
   },
   "dependencies": {
-    "kyoka": "workspace:*",
+    "@kyoka-js/kyoka": "workspace:*",
     "stripe": "^18.0.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "kyoka": ">=0.1.0"
+    "@kyoka-js/kyoka": ">=0.1.0"
   },
   "engines": {
     "node": ">=22"

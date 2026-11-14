@@ -11,7 +11,7 @@ A TypeScript entitlements library that answers `can(subject, feature)` with plai
 - **Name:** Kyoka (Japanese: permission / approval)
 - **Say:** KYOH-kah
 - **API keys (hosted):** `kyo_live_…` / `kyo_test_…`
-- **Packages:** `kyoka`, `@kyoka/stripe` (Polar later)
+- **Packages:** `@kyoka-js/kyoka`, `@kyoka-js/stripe` (Polar later)
 
 ## This is
 

@@ -12,7 +12,7 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 |---|---|---|
 | **O1** | 1–2 | Config-mode example: define plans, mount, `check` returns allow/deny |
 | **O2** | 3–4 | Stripe-less path: POST event → status flips → JWT verify via JWKS |
-| **O3** | 5–7 | Publishable `kyoka` + `@kyoka/stripe`; database-mode admin upserts plans |
+| **O3** | 5–7 | Publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe`; database-mode admin upserts plans |
 
 **OSS v1 done** when a maintainer (and later a stranger) can: define free/pro plans (config or DB admin), mount + migrate, Stripe webhook or generic events, `check` → JSON + JWT via JWKS, cancel/fail/grace flip `can()` via the state machine. Schema includes nullable `tenant_id` so Cloud can require it later.
 
@@ -55,7 +55,7 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 
 ## Phase 5 — Stripe plugin (O3)
 
-- [x] `@kyoka/stripe` package
+- [x] `@kyoka-js/stripe` package
 - [x] Signature verify + event map + metadata aliases
 - [x] Fixture tests with signed payloads
 
@@ -70,7 +70,7 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 
 - [x] Example app under `examples/`
 - [x] Unit/integration tests
-- [x] npm publish pipeline for `kyoka` + `@kyoka/stripe`
+- [x] npm publish pipeline for `@kyoka-js/kyoka` + `@kyoka-js/stripe`
 - [ ] Then: integrator docs track + private hosted build ([../PLAN_HOSTED.md](../PLAN_HOSTED.md))
 
 ## Non-goals in these phases
@@ -79,4 +79,4 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 - Hosted multi-tenant / Next console
 - Auto-seed plans
 - Usage metering storage inside Kyoka
-- Dedicated Node HTTP client for Cloud (`@kyoka/client` / remote `baseURL` mode) — revisit in Cloud / Docs-SDK track
+- Dedicated Node HTTP client for Cloud (`@kyoka-js/client` / remote `baseURL` mode) — revisit in Cloud / Docs-SDK track

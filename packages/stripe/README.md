@@ -1,10 +1,10 @@
-# `@kyoka/stripe`
+# `@kyoka-js/stripe`
 
 Stripe webhook adapter plugin for Kyoka.
 
 ```ts
-import { kyoka, pgAdapter } from "kyoka";
-import { stripe } from "@kyoka/stripe";
+import { kyoka, pgAdapter } from "@kyoka-js/kyoka";
+import { stripe } from "@kyoka-js/stripe";
 
 const entitlements = kyoka({
   database: pgAdapter(process.env.DATABASE_URL!),
