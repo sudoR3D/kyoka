@@ -19,7 +19,7 @@
     },
     "packages/kyoka": {
       "name": "@kyoka-js/kyoka",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "dependencies": {
         "jose": "^6.2.17",
         "pg": "^8.16.3",
@@ -32,12 +32,12 @@
     },
     "packages/stripe": {
       "name": "@kyoka-js/stripe",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "dependencies": {
-        "@kyoka-js/kyoka": "workspace:*",
         "stripe": "^18.0.0",
       },
       "devDependencies": {
+        "@kyoka-js/kyoka": "workspace:*",
         "typescript": "^5.9.3",
       },
       "peerDependencies": {

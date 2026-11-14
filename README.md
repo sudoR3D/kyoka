@@ -26,7 +26,7 @@ docs/history/            Archived handoff briefs
 
 ## Status
 
-OSS sprints **O1–O3** complete: publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe` (v0.1.0). Cloud build starts next (parent `PLAN_HOSTED.md`).
+OSS sprints **O1–O3** complete: publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe` (v0.1.2). Cloud build starts next (parent `PLAN_HOSTED.md`).
 
 ```bash
 bun install
@@ -44,24 +44,16 @@ Example: [examples/hono](./examples/hono).
 
 ## Publish (maintainers)
 
-Packages are **0.1.0** under the npm org [`kyoka-js`](https://www.npmjs.com/org/kyoka-js).
+Packages are under the npm org [`kyoka-js`](https://www.npmjs.com/org/kyoka-js) (current: **0.1.2**).
 
-**First publish** (once, from a maintainer machine with org access + 2FA):
-
-```bash
-bun install && bun run build
-npm login
-cd packages/kyoka && npm publish --access public
-cd ../stripe && npm publish --access public
-```
-
-**Later releases** use GitHub Actions **Trusted Publishing (OIDC)** — no `NPM_TOKEN`:
+**Releases** use GitHub Actions **Trusted Publishing (OIDC)** — no `NPM_TOKEN`:
 
 1. On each package page → Settings → Trusted Publisher → GitHub Actions  
    - Org/user: `sudoR3D` · Repo: `kyoka` · Workflow: `publish.yml`
-2. `git tag v0.1.1 && git push origin v0.1.1`
-3. `.github/workflows/publish.yml` builds, tests, and publishes via OIDC
+2. Bump `version` in `packages/*/package.json`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. `.github/workflows/publish.yml` builds, tests, and publishes both packages via OIDC
 
+`@kyoka-js/stripe` depends on `@kyoka-js/kyoka` via **peerDependencies** only (not `workspace:*` in the published tarball).
 Polished stranger-facing docs remain a **later track**.
 
 ## Private cloud (parent)
