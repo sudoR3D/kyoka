@@ -42,35 +42,35 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 
 ## Phase 3 — Tokens + JWKS (O2)
 
-- [ ] ES256 mint + JWKS route
-- [ ] Sign allow and deny; TTL 1h
-- [ ] `verify` helper for server/edge
-- [ ] Optional cookie helper (set HttpOnly entitlement cookie)
+- [x] ES256 mint + JWKS route
+- [x] Sign allow and deny; TTL 1h
+- [x] `verify` helper for server/edge
+- [x] Optional cookie helper (set HttpOnly entitlement cookie)
 
 ## Phase 4 — Generic events + state machine fullness (O2)
 
-- [ ] `POST /v1/events` + `applyBillingEvent`
-- [ ] Idempotency table
-- [ ] Full status transitions (grace, canceling, suspended)
+- [x] `POST /v1/events` + `applyBillingEvent`
+- [x] Idempotency table
+- [x] Full status transitions (grace, canceling, suspended)
 
 ## Phase 5 — Stripe plugin (O3)
 
-- [ ] `@kyoka/stripe` package
-- [ ] Signature verify + event map + metadata aliases
-- [ ] Fixture tests with signed payloads
+- [x] `@kyoka/stripe` package
+- [x] Signature verify + event map + metadata aliases
+- [x] Fixture tests with signed payloads
 
 ## Phase 6 — Admin API (O3)
 
-- [ ] Plans CRUD when `planStore: "database"`
-- [ ] Aliases add/remove
-- [ ] Overrides set/clear
-- [ ] `subjects.get`
+- [x] Plans CRUD when `planStore: "database"`
+- [x] Aliases add/remove
+- [x] Overrides set/clear
+- [x] `subjects.get`
 
 ## Phase 7 — Harden for publish (O3)
 
-- [ ] Example app under `examples/`
-- [ ] Unit/integration tests
-- [ ] npm publish pipeline for `kyoka` + `@kyoka/stripe`
+- [x] Example app under `examples/`
+- [x] Unit/integration tests
+- [x] npm publish pipeline for `kyoka` + `@kyoka/stripe`
 - [ ] Then: integrator docs track + private hosted build ([../PLAN_HOSTED.md](../PLAN_HOSTED.md))
 
 ## Non-goals in these phases

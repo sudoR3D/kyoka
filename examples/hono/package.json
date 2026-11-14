@@ -1,0 +1,14 @@
+{
+  "name": "kyoka-example-hono",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "kyoka": "workspace:*",
+    "@kyoka/stripe": "workspace:*"
+  }
+}

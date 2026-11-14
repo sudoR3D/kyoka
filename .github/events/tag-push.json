@@ -1,0 +1,23 @@
+{
+  "ref": "refs/tags/v0.1.0",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "1111111111111111111111111111111111111111",
+  "repository": {
+    "name": "kyoka",
+    "full_name": "sudoR3D/kyoka",
+    "private": false,
+    "owner": {
+      "login": "sudoR3D"
+    },
+    "default_branch": "main",
+    "clone_url": "https://github.com/sudoR3D/kyoka.git"
+  },
+  "pusher": {
+    "name": "sudoR3D",
+    "email": "devnull@example.com"
+  },
+  "head_commit": {
+    "id": "1111111111111111111111111111111111111111",
+    "message": "chore: tag v0.1.0 for local act"
+  }
+}

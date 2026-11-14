@@ -17,34 +17,46 @@ Prefer opening **`kyoka-cloud`** (parent) in Cursor, not this folder alone.
 ## Repository layout
 
 ```text
-PRODUCT.md          What we're building
-DECISIONS.md        Locked product decisions
-ARCHITECTURE.md     How the library fits together
-DOMAIN.md           Subjects, aliases, plans, overrides
-SCHEMA.md           Tables
-STATE_MACHINE.md    Billing states
-API_CONTRACT.md     Implementer HTTP / api shapes
-PLUGINS.md          Plugin + Stripe adapter contract
-PLAN.md             OSS build phases + sprint map (O1–O3)
-packages/kyoka      Core package (to implement)
-packages/stripe     @kyoka/stripe (to implement)
-examples/           Example apps (later)
-docs/history/       Archived handoff briefs
+PRODUCT.md … PLAN.md     Product / contracts
+packages/kyoka           Core library (npm: kyoka)
+packages/stripe          Stripe plugin (npm: @kyoka/stripe)
+examples/hono            Minimal Hono embed
+docs/history/            Archived handoff briefs
 ```
-
-## Private cloud (parent)
-
-Hosted API + Next console: parent directory `kyoka-cloud/` (private). Depends on packages from this OSS repo. Dual-MVP shape: [../MVP.md](../MVP.md).
 
 ## Status
 
-Sprint **O1** implemented in `packages/kyoka`: config-mode `check` (JSON), `pg` adapter + migrations, HTTP mount. Next: O2 (JWT + events). See [PLAN.md](./PLAN.md).
+OSS sprints **O1–O3** complete: publishable `kyoka` + `@kyoka/stripe` (v0.1.0). Cloud build starts next (parent `PLAN_HOSTED.md`).
 
 ```bash
 bun install
+bun run build   # tsc → dist/ (required before imports of "kyoka")
 bun test
-bun run --filter kyoka build
 ```
+
+Local GitHub Actions dry-run (needs Docker + [act](https://github.com/nektos/act)):
+
+```bash
+act push -e .github/events/push-main.json -W .github/workflows/ci.yml
+```
+
+Example: [examples/hono](./examples/hono).
+
+## Publish (maintainers)
+
+Packages are **0.1.0**. Publishing uses `.github/workflows/publish.yml` on tags `v*`.
+
+1. Set repo secret `NPM_TOKEN` (npm automation token with publish rights)
+2. `git tag v0.1.0 && git push origin v0.1.0`
+3. Action builds, tests, and `npm publish`s `kyoka` then `@kyoka/stripe`
+
+Bump versions in both `package.json` files before tagging a new release.
+
+Polished stranger-facing docs remain a **later track**.
+
+## Private cloud (parent)
+
+Hosted API + Next console: parent directory `kyoka-cloud/` (private). Dual-MVP shape: [../MVP.md](../MVP.md).
 
 ## License
 

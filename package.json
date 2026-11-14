@@ -1,0 +1,14 @@
+{
+  "name": "kyoka-oss",
+  "private": true,
+  "workspaces": ["packages/*", "examples/*"],
+  "scripts": {
+    "build": "bun run --filter kyoka build && bun run --filter @kyoka/stripe build",
+    "test": "bun run --filter kyoka build && bun test ./packages/kyoka/src ./packages/stripe/src",
+    "typecheck": "bun run --filter kyoka typecheck && bun run --filter @kyoka/stripe typecheck"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}

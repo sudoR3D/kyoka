@@ -73,6 +73,18 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 | Topology | Same-origin path gateway default; `Domain=.` / BFF advanced |
 | Generic events auth | API key (hosted) / same-app trust (embed) |
 | Provider webhooks | Provider signature (not Kyoka API key) |
+| Mint without keys | If `issuer` / `privateKey` omitted, `check` still works but **omits** `token` / `expiresAt` |
+| Default `kid` | `kyoka-1` when unset |
+| Cookie name | `kyoka_entitlement` |
+
+## Status gating (O2)
+
+| Topic | Decision |
+|---|---|
+| free / suspended | Evaluate features against `defaultPlan` (not paid `planSlug`) |
+| canceling / grace expiry | Hard deny (`period_ended` / `grace_ended`) — no free-plan fallback at check time |
+| past_due | Not entitled until an event moves to `grace` / `active` |
+| Event alias conflict | Same `(kind, value)` on another subject → **error** |
 
 ## Subject + limits
 

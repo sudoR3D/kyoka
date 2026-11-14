@@ -1,0 +1,52 @@
+{
+  "name": "kyoka",
+  "version": "0.1.0",
+  "description": "TypeScript entitlements library: can(subject, feature) → JSON + signed JWT",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./adapters/pg": {
+      "types": "./dist/adapter/pg.d.ts",
+      "import": "./dist/adapter/pg.js",
+      "default": "./dist/adapter/pg.js"
+    },
+    "./adapters/memory": {
+      "types": "./dist/adapter/memory.d.ts",
+      "import": "./dist/adapter/memory.js",
+      "default": "./dist/adapter/memory.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "jose": "^6.2.17",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.15.5",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sudoR3D/kyoka.git",
+    "directory": "packages/kyoka"
+  }
+}
