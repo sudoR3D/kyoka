@@ -1,6 +1,6 @@
 {
   "name": "@kyoka-js/stripe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Stripe webhook adapter plugin for Kyoka",
   "license": "MIT",
   "type": "module",

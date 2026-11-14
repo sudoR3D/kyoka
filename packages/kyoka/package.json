@@ -1,6 +1,6 @@
 {
   "name": "@kyoka-js/kyoka",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript entitlements library: can(subject, feature) → JSON + signed JWT",
   "license": "MIT",
   "type": "module",
