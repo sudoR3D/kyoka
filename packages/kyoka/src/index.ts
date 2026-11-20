@@ -1,4 +1,11 @@
 export { kyoka } from "./kyoka.js";
+export {
+  AliasConflictError,
+  InvalidInputError,
+  KyokaError,
+  PlansNotConfiguredError,
+  SubjectNotFoundError,
+} from "./errors.js";
 export { pgAdapter } from "./adapter/pg.js";
 export { runPgMigrations } from "./adapter/migrate.js";
 export { toNextHandler } from "./helpers/next.js";
@@ -23,6 +30,10 @@ export type {
   AliasRecord,
   AliasRef,
   ApplyBillingEventResult,
+  EnsureSubjectInput,
+  EnsureSubjectRecordInput,
+  EnsureSubjectRecordResult,
+  EnsureSubjectResult,
   BillingEventInput,
   CheckInput,
   CheckResult,

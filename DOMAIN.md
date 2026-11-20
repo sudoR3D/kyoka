@@ -29,7 +29,7 @@ External identifier → one subject.
 
 `check({ subject })` and billing events resolve any known alias (or `sub_…`) to the same subject.
 
-Bare string subject (not `sub_…`): look up any `(kind, value)` match; on **lazy create**, default alias kind is **`auth`**.
+Bare string subject (not `sub_…`): look up any `(kind, value)` match. With `lazyCreate: true`, create using default alias kind **`auth`**; without it, missing subjects return `404`.
 
 ### Plan
 
@@ -90,8 +90,8 @@ No hybrid. No auto-seed from code into DB.
 
 ## Alias linking (happy path)
 
-1. App calls `check({ subject: saasUserId })` → lazy subject + alias + `defaultPlan`
-2. Checkout metadata includes **same** `saasUserId`
+1. App calls `subjects.ensure({ aliases: [{ kind: "auth", value: saasUserId }] })` (or `check(..., { lazyCreate: true })`) → subject + alias + `defaultPlan`
+2. Checkout metadata includes **same** `saasUserId` (or the existing `sub_…` as `kyokaSubjectId`)
 3. Stripe webhook carries `cus_…` + metadata → both aliases on one `sub_…`
 
 ## Id changes

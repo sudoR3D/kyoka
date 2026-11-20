@@ -39,7 +39,7 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 | Host ORM | **Not required** — Prisma/Drizzle apps still use the `pg` adapter + same `DATABASE_URL` |
 | Later | Optional Prisma / Drizzle adapters for DX only |
 | Overrides column | `kyoka_override.value` **jsonb** (not separate enabled/limit columns) |
-| Bare `check` subject | Resolve any alias with that value (or `sub_…`); on lazy-create default kind **`auth`** |
+| Bare `check` subject | Resolve any alias with that value (or `sub_…`); lazy-create only on `lazyCreate: true`, default kind **`auth`** |
 | IDs | `sub_…` subjects; other ids ulid/cuid strings |
 
 ## Hosted value
@@ -94,7 +94,7 @@ Source: kickoff workshop (2026-11). Change only with an explicit new decision no
 |---|---|
 | Identity | Canonical `sub_…` + **aliases** `(kind, value)` |
 | `check` subject | Any alias or `sub_…` |
-| Lazy create | Yes + **defaultPlan** (usually `free`) |
+| Lazy create | Opt-in per check (`lazyCreate`) + **defaultPlan** (usually `free`); explicit `subjects.ensure` for upfront creation |
 | `sub_…` in responses | Exposed; optional for callers to store |
 | Hierarchy | Flat (no org tree in MVP) |
 | Usage counts | **SaaS DB only**; pass `used` into `check` |

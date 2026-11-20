@@ -26,7 +26,7 @@ docs/history/            Archived handoff briefs
 
 ## Status
 
-OSS sprints **O1–O3** complete: publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe` (v0.1.2). Cloud build starts next (parent `PLAN_HOSTED.md`).
+OSS sprints **O1–O3** complete: publishable `@kyoka-js/kyoka` + `@kyoka-js/stripe` (v0.2.0). Cloud build starts next (parent `PLAN_HOSTED.md`).
 
 ```bash
 bun install
@@ -44,7 +44,7 @@ Example: [examples/hono](./examples/hono).
 
 ## Publish (maintainers)
 
-Packages are under the npm org [`kyoka-js`](https://www.npmjs.com/org/kyoka-js) (current: **0.1.2**).
+Packages are under the npm org [`kyoka-js`](https://www.npmjs.com/org/kyoka-js) (current: **0.2.0**).
 
 **Releases** use GitHub Actions **Trusted Publishing (OIDC)** — no `NPM_TOKEN`:
 

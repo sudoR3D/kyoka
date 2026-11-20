@@ -58,7 +58,7 @@ Privileged actions (PDF bytes, etc.) must enforce on a trusted server via live `
 
 ## Check pipeline
 
-1. Resolve subject (alias or `sub_…`); lazy-create with `defaultPlan` if missing
+1. Resolve subject read-only (alias or `sub_…`); only `lazyCreate: true` creates with `defaultPlan`
 2. Load overrides + plan features (`config` XOR `database`)
 3. Apply state machine (entitled statuses)
 4. Compare `used` to `limit` when provided

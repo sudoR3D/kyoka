@@ -16,6 +16,7 @@ const entitlements = kyoka({
       webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
       priceIdToPlan: { price_xxx: "pro" },
       // metadataSubjectKey: "saasUserId",
+      // metadataSubjectIdKey: "kyokaSubjectId",
       // graceDays: 3,
     }),
   ],
@@ -23,5 +24,7 @@ const entitlements = kyoka({
 
 // Mount entitlements.handler — webhook at POST /api/kyoka/webhooks/stripe
 ```
+
+Subscription/Checkout metadata may include `kyokaSubjectId: "sub_…"` to target an existing subject directly; `aliases` are then optional. Without it, the adapter links aliases from `saasUserId`/customer. Checkout is linking-only and does not upgrade plans.
 
 See [PLUGINS.md](../../PLUGINS.md).

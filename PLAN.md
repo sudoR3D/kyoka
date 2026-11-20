@@ -34,7 +34,7 @@ Three sprints cover Phases 1–7. Cloud sprints start only after O3 (publishable
 
 ## Phase 2 — Subjects, plans, check (no JWT yet) (O1)
 
-- [x] Alias resolve (any kind / `sub_…`) + lazy create with default kind `auth` + `defaultPlan`
+- [x] Alias resolve (any kind / `sub_…`); opt-in lazy create with default kind `auth` + `defaultPlan`
 - [x] planStore `config` and `database` (empty DB → hard error)
 - [x] Override resolution order (`value` jsonb)
 - [x] `api.check` JSON only (`allowed`, `limit`, `used`, `reason`, `subjectId`, …) — no JWT yet

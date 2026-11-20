@@ -1,4 +1,6 @@
-import { createSubjectId, normalizeTenantId } from "./ids.js";
+import { PlansNotConfiguredError, SubjectNotFoundError } from "./errors.js";
+import { normalizeTenantId } from "./ids.js";
+import { ensureSubjectRecord, findSubject, isSubjectId } from "./subjects.js";
 import { loadTokenContext, mintToken } from "./token.js";
 import type {
   CheckInput,
@@ -9,10 +11,6 @@ import type {
   SubjectRecord,
   SubjectStatus,
 } from "./types.js";
-
-function isSubjectId(value: string): boolean {
-  return value.startsWith("sub_");
-}
 
 function resolveFeatureRule(
   rule: FeatureRule | undefined,
@@ -37,7 +35,7 @@ async function loadPlans(
 ): Promise<PlansMap> {
   if (options.planStore === "config") {
     if (!options.plans || Object.keys(options.plans).length === 0) {
-      throw new Error(
+      throw new PlansNotConfiguredError(
         'Kyoka: planStore "config" requires a non-empty plans object',
       );
     }
@@ -46,7 +44,7 @@ async function loadPlans(
 
   const plans = await options.database.listPlans(tenantId);
   if (plans.length === 0) {
-    throw new Error(
+    throw new PlansNotConfiguredError(
       'Kyoka: planStore "database" has no plans — upsert plans via admin API (no auto-seed)',
     );
   }
@@ -106,47 +104,6 @@ function statusDenyReason(
   }
 }
 
-export async function resolveSubject(
-  options: KyokaOptions,
-  tenantId: string,
-  subjectInput: string,
-): Promise<SubjectRecord> {
-  const db = options.database;
-
-  if (isSubjectId(subjectInput)) {
-    const existing = await db.getSubjectById(tenantId, subjectInput);
-    if (existing) return existing;
-    return db.createSubjectWithAlias({
-      tenantId,
-      subjectId: subjectInput,
-      planSlug: options.defaultPlan,
-      status: "free",
-      aliasKind: "auth",
-      aliasValue: subjectInput,
-    });
-  }
-
-  const alias = await db.findAlias(tenantId, subjectInput);
-  if (alias) {
-    const subject = await db.getSubjectById(tenantId, alias.subjectId);
-    if (!subject) {
-      throw new Error(
-        `Kyoka: alias ${subjectInput} points to missing subject ${alias.subjectId}`,
-      );
-    }
-    return subject;
-  }
-
-  return db.createSubjectWithAlias({
-    tenantId,
-    subjectId: createSubjectId(),
-    planSlug: options.defaultPlan,
-    status: "free",
-    aliasKind: "auth",
-    aliasValue: subjectInput,
-  });
-}
-
 async function attachToken(
   options: KyokaOptions,
   result: CheckResult,
@@ -161,13 +118,13 @@ async function attachToken(
   };
 }
 
-export async function runCheck(
+async function evaluateCheck(
   options: KyokaOptions,
+  tenantId: string,
+  subject: SubjectRecord,
   input: CheckInput,
+  plans: PlansMap,
 ): Promise<CheckResult> {
-  const tenantId = normalizeTenantId(options.tenantId);
-  const subject = await resolveSubject(options, tenantId, input.subject);
-  const plans = await loadPlans(options, tenantId);
   const planSlug = effectivePlanSlug(subject, options.defaultPlan);
   const plan = plans[planSlug];
   const now = new Date();
@@ -247,4 +204,29 @@ export async function runCheck(
     limit: rule.limit,
     reason: fromOverride ? "override" : `plan:${planSlug}`,
   });
+}
+
+export async function runCheck(
+  options: KyokaOptions,
+  input: CheckInput,
+): Promise<CheckResult> {
+  const tenantId = normalizeTenantId(options.tenantId);
+  const existing = await findSubject(options, tenantId, input.subject);
+
+  if (existing) {
+    const plans = await loadPlans(options, tenantId);
+    return evaluateCheck(options, tenantId, existing, input, plans);
+  }
+
+  if (input.lazyCreate !== true || isSubjectId(input.subject)) {
+    throw new SubjectNotFoundError();
+  }
+
+  const plans = await loadPlans(options, tenantId);
+  const ensured = await ensureSubjectRecord(options, tenantId, {
+    aliases: [{ kind: "auth", value: input.subject }],
+    planSlug: options.defaultPlan,
+    status: "free",
+  });
+  return evaluateCheck(options, tenantId, ensured.subject, input, plans);
 }

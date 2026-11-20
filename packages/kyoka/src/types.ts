@@ -62,6 +62,7 @@ export type CheckInput = {
   subject: string;
   feature: string;
   used?: number;
+  lazyCreate?: boolean;
 };
 
 export type CheckResult = {
@@ -84,10 +85,34 @@ export type AliasRef = {
   value: string;
 };
 
+export type EnsureSubjectInput = {
+  aliases: AliasRef[];
+};
+
+export type EnsureSubjectResult = {
+  subjectId: string;
+  created: boolean;
+};
+
+export type EnsureSubjectRecordInput = {
+  tenantId: string;
+  subjectId: string;
+  planSlug: string;
+  status: SubjectStatus;
+  aliases: AliasRef[];
+};
+
+export type EnsureSubjectRecordResult = {
+  subject: SubjectRecord;
+  created: boolean;
+};
+
 export type BillingEventInput = {
   idempotencyKey: string;
   source?: "generic" | "stripe" | "polar" | string;
-  aliases: AliasRef[];
+  /** Target an existing subject. Never creates a subject. */
+  subjectId?: string;
+  aliases?: AliasRef[];
   plan?: string;
   status: SubjectStatus;
   periodEndsAt?: string | Date | null;
@@ -99,6 +124,7 @@ export type ApplyBillingEventResult = {
   applied: boolean;
   duplicate: boolean;
   subjectId: string | null;
+  created: boolean;
 };
 
 export type KyokaPlugin = {
@@ -152,6 +178,7 @@ export type KyokaApi = {
     delete: (slug: string) => Promise<boolean>;
   };
   subjects: {
+    ensure: (input: EnsureSubjectInput) => Promise<EnsureSubjectResult>;
     get: (subjectOrAlias: string) => Promise<SubjectView | null>;
     setOverride: (input: {
       subject: string;
@@ -206,6 +233,12 @@ export type KyokaDatabase = {
     aliasKind: string;
     aliasValue: string;
   }): Promise<SubjectRecord>;
+  ensureSubject(input: EnsureSubjectRecordInput): Promise<EnsureSubjectRecordResult>;
+  linkAliases(input: {
+    tenantId: string;
+    subjectId: string;
+    aliases: AliasRef[];
+  }): Promise<AliasRecord[]>;
   addAlias(input: {
     tenantId: string;
     subjectId: string;

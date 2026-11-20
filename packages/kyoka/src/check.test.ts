@@ -39,12 +39,19 @@ async function createConfigInstance(withKeys = false) {
   return { db, instance, keys };
 }
 
+async function ensure(instance: ReturnType<typeof kyoka>, value: string) {
+  return instance.api.subjects.ensure({
+    aliases: [{ kind: "auth", value }],
+  });
+}
+
 describe("api.check (config planStore)", () => {
   test("lazy-creates subject and allows free feature", async () => {
     const { instance } = await createConfigInstance();
     const result = await instance.api.check({
       subject: "user_ada",
       feature: "export.csv",
+      lazyCreate: true,
     });
 
     expect(result.allowed).toBe(true);
@@ -56,8 +63,45 @@ describe("api.check (config planStore)", () => {
     expect(result.limit).toBeNull();
   });
 
+  test("does not create an unknown subject without lazyCreate", async () => {
+    const { instance } = await createConfigInstance();
+
+    await expect(
+      instance.api.check({ subject: "user_missing", feature: "export.csv" }),
+    ).rejects.toThrow(/subject not found/);
+    expect(await instance.api.subjects.get("user_missing")).toBeNull();
+  });
+
+  test("does not create from an unknown sub_ id", async () => {
+    const { instance } = await createConfigInstance();
+
+    await expect(
+      instance.api.check({
+        subject: "sub_missing",
+        feature: "export.csv",
+        lazyCreate: true,
+      }),
+    ).rejects.toThrow(/subject not found/);
+    expect(await instance.api.subjects.get("sub_missing")).toBeNull();
+  });
+
+  test("lazyCreate creates once and then resolves read-only", async () => {
+    const { instance } = await createConfigInstance();
+    const first = await instance.api.check({
+      subject: "user_lazy",
+      feature: "export.csv",
+      lazyCreate: true,
+    });
+    const second = await instance.api.check({
+      subject: "user_lazy",
+      feature: "export.csv",
+    });
+    expect(second.subjectId).toBe(first.subjectId);
+  });
+
   test("denies unknown feature", async () => {
     const { instance } = await createConfigInstance();
+    await ensure(instance, "user_ada");
     const result = await instance.api.check({
       subject: "user_ada",
       feature: "branding.hide",
@@ -69,6 +113,7 @@ describe("api.check (config planStore)", () => {
 
   test("enforces limit with used", async () => {
     const { instance } = await createConfigInstance();
+    await ensure(instance, "user_ada");
     const under = await instance.api.check({
       subject: "user_ada",
       feature: "export.png",
@@ -88,11 +133,7 @@ describe("api.check (config planStore)", () => {
 
   test("override wins over plan", async () => {
     const { db, instance } = await createConfigInstance();
-    const first = await instance.api.check({
-      subject: "user_ada",
-      feature: "branding.hide",
-    });
-    expect(first.allowed).toBe(false);
+    const first = await ensure(instance, "user_ada");
 
     db.seedOverride("", first.subjectId, "branding.hide", { enabled: true });
     const second = await instance.api.check({
@@ -105,10 +146,7 @@ describe("api.check (config planStore)", () => {
 
   test("suspended still allows free-plan features only", async () => {
     const { db, instance } = await createConfigInstance();
-    const created = await instance.api.check({
-      subject: "user_bob",
-      feature: "export.csv",
-    });
+    const created = await ensure(instance, "user_bob");
     db.setSubjectBilling("", created.subjectId, {
       status: "suspended",
       planSlug: "pro",
@@ -131,6 +169,7 @@ describe("api.check (config planStore)", () => {
 
   test("resolves same subject via alias on second check", async () => {
     const { instance } = await createConfigInstance();
+    await ensure(instance, "user_ada");
     const a = await instance.api.check({
       subject: "user_ada",
       feature: "export.csv",
@@ -153,7 +192,11 @@ describe("planStore database", () => {
     });
 
     await expect(
-      instance.api.check({ subject: "user_ada", feature: "export.csv" }),
+      instance.api.check({
+        subject: "user_ada",
+        feature: "export.csv",
+        lazyCreate: true,
+      }),
     ).rejects.toThrow(/no plans/);
   });
 
@@ -166,6 +209,7 @@ describe("planStore database", () => {
       defaultPlan: "free",
     });
 
+    await ensure(instance, "user_ada");
     const result = await instance.api.check({
       subject: "user_ada",
       feature: "export.csv",
@@ -178,6 +222,7 @@ describe("planStore database", () => {
 describe("HTTP handler", () => {
   test("POST /api/kyoka/v1/check returns JSON", async () => {
     const { instance } = await createConfigInstance();
+    await ensure(instance, "user_ada");
     const res = await instance.handler(
       new Request("http://localhost/api/kyoka/v1/check", {
         method: "POST",
@@ -195,8 +240,65 @@ describe("HTTP handler", () => {
     expect(body.plan).toBe("free");
   });
 
+  test("POST /subjects ensures and returns created", async () => {
+    const { instance } = await createConfigInstance();
+    const res = await instance.handler(
+      new Request("http://localhost/api/kyoka/v1/subjects", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          aliases: [{ kind: "auth", value: "user_ada" }],
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { subjectId: string; created: boolean };
+    expect(body.created).toBe(true);
+    expect(body.subjectId.startsWith("sub_")).toBe(true);
+
+    const check = await instance.handler(
+      new Request("http://localhost/api/kyoka/v1/check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ subject: "user_ada", feature: "export.csv" }),
+      }),
+    );
+    expect(check.status).toBe(200);
+  });
+
+  test("check without lazyCreate returns 404", async () => {
+    const { instance } = await createConfigInstance();
+    const res = await instance.handler(
+      new Request("http://localhost/api/kyoka/v1/check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ subject: "user_missing", feature: "export.csv" }),
+      }),
+    );
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "subject_not_found" });
+  });
+
+  test("check rejects non-boolean lazyCreate", async () => {
+    const { instance } = await createConfigInstance();
+    const res = await instance.handler(
+      new Request("http://localhost/api/kyoka/v1/check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          subject: "user_missing",
+          feature: "export.csv",
+          lazyCreate: "yes",
+        }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid_lazy_create" });
+  });
+
   test("POST deny path", async () => {
     const { instance } = await createConfigInstance();
+    await ensure(instance, "user_ada");
     const res = await instance.handler(
       new Request("http://localhost/api/kyoka/v1/check", {
         method: "POST",
@@ -216,6 +318,7 @@ describe("HTTP handler", () => {
 describe("tokens + JWKS (O2)", () => {
   test("check mints JWT that verifies against JWKS", async () => {
     const { instance, keys } = await createConfigInstance(true);
+    await ensure(instance, "user_ada");
     const result = await instance.api.check({
       subject: "user_ada",
       feature: "export.csv",
@@ -252,6 +355,7 @@ describe("tokens + JWKS (O2)", () => {
 
   test("deny is also signed", async () => {
     const { instance } = await createConfigInstance(true);
+    await ensure(instance, "user_ada");
     const result = await instance.api.check({
       subject: "user_ada",
       feature: "nope",
@@ -375,10 +479,7 @@ describe("events + status machine (O2)", () => {
 
   test("canceling past periodEndsAt denies", async () => {
     const { db, instance } = await createConfigInstance();
-    const created = await instance.api.check({
-      subject: "user_c",
-      feature: "export.csv",
-    });
+    const created = await ensure(instance, "user_c");
     db.setSubjectBilling("", created.subjectId, {
       planSlug: "pro",
       status: "canceling",
@@ -395,10 +496,7 @@ describe("events + status machine (O2)", () => {
 
   test("canceling before periodEndsAt allows", async () => {
     const { db, instance } = await createConfigInstance();
-    const created = await instance.api.check({
-      subject: "user_c2",
-      feature: "export.csv",
-    });
+    const created = await ensure(instance, "user_c2");
     db.setSubjectBilling("", created.subjectId, {
       planSlug: "pro",
       status: "canceling",
@@ -414,10 +512,7 @@ describe("events + status machine (O2)", () => {
 
   test("grace past graceEndsAt denies", async () => {
     const { db, instance } = await createConfigInstance();
-    const created = await instance.api.check({
-      subject: "user_g",
-      feature: "export.csv",
-    });
+    const created = await ensure(instance, "user_g");
     db.setSubjectBilling("", created.subjectId, {
       planSlug: "pro",
       status: "grace",
@@ -434,10 +529,7 @@ describe("events + status machine (O2)", () => {
 
   test("past_due denies", async () => {
     const { db, instance } = await createConfigInstance();
-    const created = await instance.api.check({
-      subject: "user_pd",
-      feature: "export.csv",
-    });
+    const created = await ensure(instance, "user_pd");
     db.setSubjectBilling("", created.subjectId, {
       planSlug: "pro",
       status: "past_due",

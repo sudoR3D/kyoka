@@ -21,7 +21,7 @@ Exact naming in code may use these string enums. Map provider events onto them i
 ```mermaid
 stateDiagram-v2
   [*] --> trial: signup_or_default
-  [*] --> free: lazy_check_defaultPlan
+  [*] --> free: subject_ensure_or_lazy_check
   trial --> active: paid
   trial --> free: trial_ended
   free --> active: paid

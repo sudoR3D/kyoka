@@ -1,5 +1,6 @@
-import { resolveSubject } from "./check.js";
+import { InvalidInputError, SubjectNotFoundError } from "./errors.js";
 import { normalizeTenantId } from "./ids.js";
+import { findSubject } from "./subjects.js";
 import type {
   AliasRecord,
   FeatureRule,
@@ -61,19 +62,7 @@ export async function getSubject(
 ): Promise<SubjectView | null> {
   const tenantId = normalizeTenantId(options.tenantId);
   const db = options.database;
-
-  let subjectId: string | null = null;
-  if (subjectOrAlias.startsWith("sub_")) {
-    const s = await db.getSubjectById(tenantId, subjectOrAlias);
-    if (!s) return null;
-    subjectId = s.id;
-  } else {
-    const alias = await db.findAlias(tenantId, subjectOrAlias);
-    if (!alias) return null;
-    subjectId = alias.subjectId;
-  }
-
-  const subject = await db.getSubjectById(tenantId, subjectId);
+  const subject = await findSubject(options, tenantId, subjectOrAlias);
   if (!subject) return null;
 
   const [aliases, overrides] = await Promise.all([
@@ -89,13 +78,18 @@ export async function addAlias(
   input: { subject: string; kind: string; value: string },
 ): Promise<AliasRecord> {
   const tenantId = normalizeTenantId(options.tenantId);
-  const subject = await resolveSubject(options, tenantId, input.subject);
-  return options.database.addAlias({
+  if (!input.kind || !input.value) {
+    throw new InvalidInputError("Kyoka: kind and value are required");
+  }
+  const subject = await findSubject(options, tenantId, input.subject);
+  if (!subject) throw new SubjectNotFoundError();
+  const [alias] = await options.database.linkAliases({
     tenantId,
     subjectId: subject.id,
-    kind: input.kind,
-    value: input.value,
+    aliases: [{ kind: input.kind, value: input.value }],
   });
+  if (!alias) throw new Error("Kyoka: failed to link alias");
+  return alias;
 }
 
 export async function removeAlias(
@@ -116,7 +110,8 @@ export async function setOverride(
   },
 ): Promise<OverrideRecord> {
   const tenantId = normalizeTenantId(options.tenantId);
-  const subject = await resolveSubject(options, tenantId, input.subject);
+  const subject = await findSubject(options, tenantId, input.subject);
+  if (!subject) throw new SubjectNotFoundError();
   const value: FeatureRule = {};
   if (input.enabled !== undefined) value.enabled = input.enabled;
   if (Object.prototype.hasOwnProperty.call(input, "limit")) {
@@ -135,7 +130,8 @@ export async function clearOverride(
   input: { subject: string; feature: string },
 ): Promise<boolean> {
   const tenantId = normalizeTenantId(options.tenantId);
-  const subject = await resolveSubject(options, tenantId, input.subject);
+  const subject = await findSubject(options, tenantId, input.subject);
+  if (!subject) throw new SubjectNotFoundError();
   return options.database.clearOverride(
     tenantId,
     subject.id,

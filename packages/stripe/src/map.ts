@@ -1,4 +1,4 @@
-import type { BillingEventInput, SubjectStatus } from "@kyoka-js/kyoka";
+import type { AliasRef, BillingEventInput, SubjectStatus } from "@kyoka-js/kyoka";
 import type Stripe from "stripe";
 
 export type StripePluginOptions = {
@@ -6,6 +6,8 @@ export type StripePluginOptions = {
   priceIdToPlan?: Record<string, string>;
   /** Metadata key for saas user id. Default: saasUserId */
   metadataSubjectKey?: string;
+  /** Metadata key for an existing Kyoka subject id. Default: kyokaSubjectId */
+  metadataSubjectIdKey?: string;
   /** Days of grace after payment_failed. Default: 3 */
   graceDays?: number;
 };
@@ -44,15 +46,26 @@ function customerId(
   return customer.id;
 }
 
+function subjectIdFromMetadata(
+  opts: StripePluginOptions,
+  metadata: Stripe.Metadata | null | undefined,
+): string | undefined {
+  const value = metaValue(
+    metadata,
+    opts.metadataSubjectIdKey ?? "kyokaSubjectId",
+  );
+  return value?.startsWith("sub_") ? value : undefined;
+}
+
 function buildAliases(
   opts: StripePluginOptions,
   parts: {
     customer?: string;
     metadata?: Stripe.Metadata | null;
   },
-): BillingEventInput["aliases"] {
+): AliasRef[] {
   const key = opts.metadataSubjectKey ?? "saasUserId";
-  const aliases: BillingEventInput["aliases"] = [];
+  const aliases: AliasRef[] = [];
   const saas = metaValue(parts.metadata, key);
   if (saas) {
     aliases.push({ kind: "auth", value: saas });
@@ -122,13 +135,15 @@ export function mapStripeEvent(
         customer: cus,
         metadata: sub.metadata,
       });
-      if (!aliases.length) return null;
+      const subjectId = subjectIdFromMetadata(opts, sub.metadata);
+      if (!aliases.length && !subjectId) return null;
       const mapped = mapSubscriptionStatus(sub);
       const plan = planFromPrice(subscriptionPriceId(sub), opts.priceIdToPlan);
       return {
         idempotencyKey: event.id,
         source: "stripe",
         aliases,
+        subjectId,
         plan: mapped.status === "free" ? "free" : plan,
         status: mapped.status,
         periodEndsAt: mapped.periodEndsAt,
@@ -143,11 +158,13 @@ export function mapStripeEvent(
         customer: cus,
         metadata: sub.metadata,
       });
-      if (!aliases.length) return null;
+      const subjectId = subjectIdFromMetadata(opts, sub.metadata);
+      if (!aliases.length && !subjectId) return null;
       return {
         idempotencyKey: event.id,
         source: "stripe",
         aliases,
+        subjectId,
         plan: "free",
         status: "free",
         periodEndsAt: null,
@@ -162,7 +179,8 @@ export function mapStripeEvent(
         customer: cus,
         metadata: invoice.metadata,
       });
-      if (!aliases.length) return null;
+      const subjectId = subjectIdFromMetadata(opts, invoice.metadata);
+      if (!aliases.length && !subjectId) return null;
       const graceEndsAt = new Date(
         Date.now() + graceDays * 24 * 60 * 60 * 1000,
       ).toISOString();
@@ -170,6 +188,7 @@ export function mapStripeEvent(
         idempotencyKey: event.id,
         source: "stripe",
         aliases,
+        subjectId,
         status: "grace",
         graceEndsAt,
       };
@@ -182,12 +201,14 @@ export function mapStripeEvent(
         customer: cus ?? undefined,
         metadata: session.metadata,
       });
-      if (!aliases.length) return null;
+      const subjectId = subjectIdFromMetadata(opts, session.metadata);
+      if (!aliases.length && !subjectId) return null;
       // Linking-only: keep free/default unless subscription mode implies paid later via subscription events
       return {
         idempotencyKey: event.id,
         source: "stripe",
         aliases,
+        subjectId,
         status: "free",
       };
     }

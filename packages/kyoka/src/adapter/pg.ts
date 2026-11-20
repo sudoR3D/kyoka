@@ -8,6 +8,7 @@ import type {
   SubjectRecord,
   SubjectStatus,
 } from "../types.js";
+import { AliasConflictError, SubjectNotFoundError } from "../errors.js";
 import { createId } from "../ids.js";
 import { runPgMigrations } from "./migrate.js";
 
@@ -21,11 +22,20 @@ export type PgAdapterOptions =
       pool?: pg.Pool;
     };
 
+function isPool(value: unknown): value is pg.Pool {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as pg.Pool).query === "function" &&
+    typeof (value as pg.Pool).connect === "function"
+  );
+}
+
 function resolvePool(options: PgAdapterOptions): pg.Pool {
   if (typeof options === "string") {
     return new Pool({ connectionString: options });
   }
-  if (options instanceof Pool) {
+  if (isPool(options)) {
     return options;
   }
   if (options.pool) return options.pool;
@@ -33,6 +43,26 @@ function resolvePool(options: PgAdapterOptions): pg.Pool {
     return new Pool({ connectionString: options.connectionString });
   }
   throw new Error("Kyoka pgAdapter: provide connectionString or pool");
+}
+
+async function verifyAliases(
+  client: pg.PoolClient,
+  tenantId: string,
+  subjectId: string,
+  aliases: Array<{ kind: string; value: string }>,
+): Promise<void> {
+  for (const alias of aliases) {
+    const res = await client.query(
+      `SELECT subject_id FROM kyoka_alias
+       WHERE tenant_id = $1 AND kind = $2 AND value = $3
+       LIMIT 1`,
+      [tenantId, alias.kind, alias.value],
+    );
+    const row = res.rows[0];
+    if (!row || String(row.subject_id) !== subjectId) {
+      throw new AliasConflictError();
+    }
+  }
 }
 
 function mapSubject(row: Record<string, unknown>): SubjectRecord {
@@ -159,6 +189,196 @@ export function pgAdapter(options: PgAdapterOptions): KyokaDatabase {
       const row = loaded.rows[0];
       if (!row) throw new Error("Kyoka: failed to load created subject");
       return mapSubject(row);
+    },
+
+    async ensureSubject(input) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        const matching: Array<Record<string, unknown>> = [];
+        for (const alias of input.aliases) {
+          const res = await client.query(
+            `SELECT * FROM kyoka_alias
+             WHERE tenant_id = $1 AND kind = $2 AND value = $3
+             FOR UPDATE`,
+            [input.tenantId, alias.kind, alias.value],
+          );
+          const row = res.rows[0];
+          if (row) matching.push(row);
+        }
+
+        const subjectIds = new Set(
+          matching.map((row) => String(row.subject_id)),
+        );
+        if (subjectIds.size > 1) {
+          throw new AliasConflictError();
+        }
+
+        if (subjectIds.size === 1) {
+          const subjectId = [...subjectIds][0]!;
+          const loaded = await client.query(
+            `SELECT * FROM kyoka_subject
+             WHERE tenant_id = $1 AND id = $2
+             LIMIT 1`,
+            [input.tenantId, subjectId],
+          );
+          const row = loaded.rows[0];
+          if (!row) {
+            throw new Error(
+              `Kyoka: alias points to missing subject ${subjectId}`,
+            );
+          }
+
+          const now = new Date();
+          for (const alias of input.aliases) {
+            await client.query(
+              `INSERT INTO kyoka_alias
+                (id, tenant_id, subject_id, kind, value, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6)
+               ON CONFLICT (tenant_id, kind, value) DO NOTHING`,
+              [
+                createId(),
+                input.tenantId,
+                subjectId,
+                alias.kind,
+                alias.value,
+                now,
+              ],
+            );
+          }
+          await verifyAliases(
+            client,
+            input.tenantId,
+            subjectId,
+            input.aliases,
+          );
+          await client.query("COMMIT");
+          return { subject: mapSubject(row), created: false };
+        }
+
+        const now = new Date();
+        const created = await client.query(
+          `INSERT INTO kyoka_subject
+            (id, tenant_id, plan_slug, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $5)
+           RETURNING *`,
+          [
+            input.subjectId,
+            input.tenantId,
+            input.planSlug,
+            input.status,
+            now,
+          ],
+        );
+
+        for (const alias of input.aliases) {
+          await client.query(
+            `INSERT INTO kyoka_alias
+              (id, tenant_id, subject_id, kind, value, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (tenant_id, kind, value) DO NOTHING`,
+            [
+              createId(),
+              input.tenantId,
+              input.subjectId,
+              alias.kind,
+              alias.value,
+              now,
+            ],
+          );
+        }
+        await verifyAliases(
+          client,
+          input.tenantId,
+          input.subjectId,
+          input.aliases,
+        );
+        await client.query("COMMIT");
+        return { subject: mapSubject(created.rows[0]!), created: true };
+      } catch (err) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // The connection may already be aborted.
+        }
+        throw err;
+      } finally {
+        client.release();
+      }
+    },
+
+    async linkAliases(input) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const subject = await client.query(
+          `SELECT id FROM kyoka_subject
+           WHERE tenant_id = $1 AND id = $2
+           LIMIT 1`,
+          [input.tenantId, input.subjectId],
+        );
+        if (!subject.rows[0]) {
+          throw new SubjectNotFoundError();
+        }
+
+        const records: AliasRecord[] = [];
+        for (const alias of input.aliases) {
+          const existing = await client.query(
+            `SELECT * FROM kyoka_alias
+             WHERE tenant_id = $1 AND kind = $2 AND value = $3
+             FOR UPDATE`,
+            [input.tenantId, alias.kind, alias.value],
+          );
+          const found = existing.rows[0];
+          if (found) {
+            if (String(found.subject_id) !== input.subjectId) {
+              throw new AliasConflictError();
+            }
+            records.push(mapAlias(found));
+            continue;
+          }
+
+          const now = new Date();
+          await client.query(
+            `INSERT INTO kyoka_alias
+              (id, tenant_id, subject_id, kind, value, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (tenant_id, kind, value) DO NOTHING`,
+            [
+              createId(),
+              input.tenantId,
+              input.subjectId,
+              alias.kind,
+              alias.value,
+              now,
+            ],
+          );
+          const after = await client.query(
+            `SELECT * FROM kyoka_alias
+             WHERE tenant_id = $1 AND kind = $2 AND value = $3
+             LIMIT 1`,
+            [input.tenantId, alias.kind, alias.value],
+          );
+          const row = after.rows[0];
+          if (!row || String(row.subject_id) !== input.subjectId) {
+            throw new AliasConflictError();
+          }
+          records.push(mapAlias(row));
+        }
+
+        await client.query("COMMIT");
+        return records;
+      } catch (err) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // The connection may already be aborted.
+        }
+        throw err;
+      } finally {
+        client.release();
+      }
     },
 
     async getPlan(tenantId, slug) {

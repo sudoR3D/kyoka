@@ -26,6 +26,9 @@ describe("admin API", () => {
     const list = await instance.api.plans.list();
     expect(list.map((p) => p.slug).sort()).toEqual(["free", "pro"]);
 
+    await instance.api.subjects.ensure({
+      aliases: [{ kind: "auth", value: "user_ada" }],
+    });
     const check = await instance.api.check({
       subject: "user_ada",
       feature: "export.csv",
@@ -64,7 +67,9 @@ describe("admin API", () => {
       },
     });
 
-    await instance.api.check({ subject: "user_ada", feature: "export.csv" });
+    await instance.api.subjects.ensure({
+      aliases: [{ kind: "auth", value: "user_ada" }],
+    });
     await instance.api.aliases.add({
       subject: "user_ada",
       kind: "app",

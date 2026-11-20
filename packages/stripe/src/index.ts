@@ -54,6 +54,7 @@ export function stripe(options: StripePluginOptions): KyokaPlugin {
           applied: result.applied,
           duplicate: result.duplicate,
           subjectId: result.subjectId,
+          created: result.created,
         });
       },
     },

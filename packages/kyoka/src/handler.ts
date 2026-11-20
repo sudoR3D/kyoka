@@ -1,8 +1,19 @@
 import * as admin from "./admin.js";
 import { runCheck } from "./check.js";
 import { applyBillingEvent } from "./events.js";
+import {
+  AliasConflictError,
+  InvalidInputError,
+  PlansNotConfiguredError,
+  SubjectNotFoundError,
+} from "./errors.js";
 import { buildJwks, loadTokenContext } from "./token.js";
-import type { BillingEventInput, KyokaInstance, KyokaOptions } from "./types.js";
+import type {
+  AliasRef,
+  BillingEventInput,
+  KyokaInstance,
+  KyokaOptions,
+} from "./types.js";
 
 function normalizeBasePath(basePath?: string): string {
   const raw = basePath ?? "/api/kyoka";
@@ -53,7 +64,12 @@ export function createHandler(options: KyokaOptions, instance: KyokaInstance) {
     }
 
     if (req.method === "POST" && (path === "/v1/check" || path === "/check")) {
-      let body: { subject?: string; feature?: string; used?: number };
+      let body: {
+        subject?: string;
+        feature?: string;
+        used?: number;
+        lazyCreate?: boolean;
+      };
       try {
         body = (await req.json()) as typeof body;
       } catch {
@@ -62,16 +78,59 @@ export function createHandler(options: KyokaOptions, instance: KyokaInstance) {
       if (!body.subject || !body.feature) {
         return json({ error: "subject_and_feature_required" }, 400);
       }
+      if (
+        body.lazyCreate !== undefined &&
+        typeof body.lazyCreate !== "boolean"
+      ) {
+        return json({ error: "invalid_lazy_create" }, 400);
+      }
       try {
         return json(
           await runCheck(options, {
             subject: body.subject,
             feature: body.feature,
             used: body.used,
+            lazyCreate: body.lazyCreate,
           }),
         );
       } catch (err) {
+        if (err instanceof SubjectNotFoundError) {
+          return json({ error: err.code }, 404);
+        }
+        if (err instanceof PlansNotConfiguredError) {
+          return json({ error: err.code, message: errorMessage(err) }, 503);
+        }
         return json({ error: "check_failed", message: errorMessage(err) }, 500);
+      }
+    }
+
+    if (
+      req.method === "POST" &&
+      (path === "/v1/subjects" || path === "/subjects")
+    ) {
+      let body: { aliases?: unknown };
+      try {
+        body = (await req.json()) as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+      if (!Array.isArray(body.aliases)) {
+        return json({ error: "aliases_required" }, 400);
+      }
+      try {
+        return json(
+          await instance.api.subjects.ensure({
+            aliases: body.aliases as AliasRef[],
+          }),
+        );
+      } catch (err) {
+        if (err instanceof AliasConflictError) {
+          return json({ error: err.code, message: errorMessage(err) }, 409);
+        }
+        if (err instanceof InvalidInputError) {
+          return json({ error: err.code, message: errorMessage(err) }, 400);
+        }
+        return json({ error: "ensure_failed", message: errorMessage(err) }, 500);
       }
     }
 
@@ -85,6 +144,15 @@ export function createHandler(options: KyokaOptions, instance: KyokaInstance) {
       try {
         return json(await applyBillingEvent(options, body), 200);
       } catch (err) {
+        if (err instanceof SubjectNotFoundError) {
+          return json({ error: err.code }, 404);
+        }
+        if (err instanceof AliasConflictError) {
+          return json({ error: err.code, message: errorMessage(err) }, 409);
+        }
+        if (err instanceof InvalidInputError) {
+          return json({ error: err.code, message: errorMessage(err) }, 400);
+        }
         return json({ error: "event_failed", message: errorMessage(err) }, 400);
       }
     }
@@ -210,6 +278,15 @@ export function createHandler(options: KyokaOptions, instance: KyokaInstance) {
           }
         }
       } catch (err) {
+        if (err instanceof SubjectNotFoundError) {
+          return json({ error: err.code }, 404);
+        }
+        if (err instanceof AliasConflictError) {
+          return json({ error: err.code, message: errorMessage(err) }, 409);
+        }
+        if (err instanceof InvalidInputError) {
+          return json({ error: err.code, message: errorMessage(err) }, 400);
+        }
         const message = errorMessage(err);
         const status = message.includes('planStore "database"') ? 400 : 400;
         return json({ error: "admin_failed", message }, status);

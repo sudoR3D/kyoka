@@ -76,6 +76,34 @@ describe("mapStripeEvent", () => {
     ]);
   });
 
+  test("maps metadata subject id", () => {
+    const event = {
+      id: "evt_subject_1",
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_1",
+          object: "subscription",
+          status: "active",
+          cancel_at_period_end: false,
+          customer: null,
+          metadata: { kyokaSubjectId: "sub_existing" },
+          items: {
+            data: [{ price: { id: "price_pro" } }],
+          },
+        },
+      },
+    } as unknown as Stripe.Event;
+
+    const mapped = mapStripeEvent(event, {
+      webhookSecret: SECRET,
+      priceIdToPlan: { price_pro: "pro" },
+    });
+    expect(mapped).not.toBeNull();
+    expect(mapped!.subjectId).toBe("sub_existing");
+    expect(mapped!.aliases).toEqual([]);
+  });
+
   test("payment_failed maps to grace", () => {
     const event = {
       id: "evt_fail_1",
@@ -144,6 +172,57 @@ describe("@kyoka-js/stripe webhook", () => {
     expect(check.allowed).toBe(true);
     expect(check.plan).toBe("pro");
     expect(check.status).toBe("active");
+  });
+
+  test("metadata subject id targets an existing subject", async () => {
+    const db = memoryAdapter();
+    const instance = kyoka({
+      database: db,
+      planStore: "config",
+      defaultPlan: "free",
+      plans,
+      plugins: [
+        stripe({
+          webhookSecret: SECRET,
+          priceIdToPlan: { price_pro: "pro" },
+        }),
+      ],
+    });
+    const created = await instance.api.subjects.ensure({
+      aliases: [{ kind: "auth", value: "user_ada" }],
+    });
+
+    const payload = {
+      id: "evt_live_subject_id",
+      object: "event",
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_1",
+          object: "subscription",
+          status: "active",
+          cancel_at_period_end: false,
+          customer: "cus_ada",
+          metadata: { kyokaSubjectId: created.subjectId },
+          items: {
+            data: [{ price: { id: "price_pro" } }],
+          },
+        },
+      },
+    };
+
+    const res = await instance.handler(signedRequest(payload));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { created: boolean; subjectId: string };
+    expect(body.created).toBe(false);
+    expect(body.subjectId).toBe(created.subjectId);
+
+    const check = await instance.api.check({
+      subject: created.subjectId,
+      feature: "branding.hide",
+    });
+    expect(check.allowed).toBe(true);
+    expect(check.plan).toBe("pro");
   });
 
   test("bad signature rejected", async () => {

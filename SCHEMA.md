@@ -2,7 +2,7 @@
 
 Logical schema for embed (app DB via adapter). Hosted adds a `tenant_id` on every row (see private `TENANCY.md`). Embed may omit `tenant_id` or use a constant.
 
-IDs: string cuid/ulid; subjects prefixed `sub_` in application layer.
+IDs: string cuid/ulid; subjects prefixed `sub_` in application layer. Subject ids are server-generated only; callers never choose ids for creation. `kyoka_alias` uniqueness `(tenant_id, kind, value)` is the atomic ownership guard.
 
 ## Tables
 

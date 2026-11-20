@@ -1,3 +1,4 @@
+import { AliasConflictError, SubjectNotFoundError } from "../errors.js";
 import { createId } from "../ids.js";
 import type {
   AliasRecord,
@@ -144,6 +145,115 @@ export function memoryAdapter(): KyokaDatabase & {
         createdAt: now,
       });
       return subject;
+    },
+
+    async ensureSubject(input) {
+      const matching = aliases.filter(
+        (a) =>
+          a.tenantId === input.tenantId &&
+          input.aliases.some(
+            (ref) => ref.kind === a.kind && ref.value === a.value,
+          ),
+      );
+      const subjectIds = new Set(matching.map((a) => a.subjectId));
+
+      if (subjectIds.size > 1) {
+        throw new AliasConflictError();
+      }
+
+      if (subjectIds.size === 1) {
+        const subjectId = [...subjectIds][0]!;
+        const subject = subjects.get(subjectKey(input.tenantId, subjectId));
+        if (!subject) {
+          throw new Error(
+            `Kyoka: alias points to missing subject ${subjectId}`,
+          );
+        }
+        const now = new Date();
+        for (const ref of input.aliases) {
+          const existing = aliases.find(
+            (a) =>
+              a.tenantId === input.tenantId &&
+              a.kind === ref.kind &&
+              a.value === ref.value,
+          );
+          if (existing) {
+            if (existing.subjectId !== subjectId) {
+              throw new AliasConflictError();
+            }
+            continue;
+          }
+          aliases.push({
+            id: createId(),
+            tenantId: input.tenantId,
+            subjectId,
+            kind: ref.kind,
+            value: ref.value,
+            createdAt: now,
+          });
+        }
+        return { subject, created: false };
+      }
+
+      const now = new Date();
+      const subject: SubjectRecord = {
+        id: input.subjectId,
+        tenantId: input.tenantId,
+        planSlug: input.planSlug,
+        status: input.status,
+        periodEndsAt: null,
+        graceEndsAt: null,
+        trialEndsAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      subjects.set(subjectKey(input.tenantId, input.subjectId), subject);
+      for (const ref of input.aliases) {
+        aliases.push({
+          id: createId(),
+          tenantId: input.tenantId,
+          subjectId: input.subjectId,
+          kind: ref.kind,
+          value: ref.value,
+          createdAt: now,
+        });
+      }
+      return { subject, created: true };
+    },
+
+    async linkAliases(input) {
+      const subject = subjects.get(subjectKey(input.tenantId, input.subjectId));
+      if (!subject) throw new SubjectNotFoundError();
+
+      const records: AliasRecord[] = [];
+      const pending: AliasRecord[] = [];
+      for (const ref of input.aliases) {
+        const existing = aliases.find(
+          (a) =>
+            a.tenantId === input.tenantId &&
+            a.kind === ref.kind &&
+            a.value === ref.value,
+        );
+        if (existing) {
+          if (existing.subjectId !== input.subjectId) {
+            throw new AliasConflictError();
+          }
+          records.push(existing);
+          continue;
+        }
+        const record: AliasRecord = {
+          id: createId(),
+          tenantId: input.tenantId,
+          subjectId: input.subjectId,
+          kind: ref.kind,
+          value: ref.value,
+          createdAt: new Date(),
+        };
+        pending.push(record);
+        records.push(record);
+      }
+      aliases.push(...pending);
+      return records;
     },
 
     async addAlias(input) {

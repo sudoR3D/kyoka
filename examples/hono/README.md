@@ -17,7 +17,12 @@ Server: `http://localhost:8787`
 ## Curl
 
 ```bash
-# Check (lazy-creates free subject)
+# Ensure subject (free/default plan)
+curl -s http://localhost:8787/api/kyoka/v1/subjects \
+  -H 'content-type: application/json' \
+  -d '{"aliases":[{"kind":"auth","value":"user_ada"}]}' | jq
+
+# Check (add "lazyCreate":true to create on the fly)
 curl -s http://localhost:8787/api/kyoka/v1/check \
   -H 'content-type: application/json' \
   -d '{"subject":"user_ada","feature":"export.csv"}' | jq

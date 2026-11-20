@@ -8,7 +8,7 @@ This is a **development contract**, not polished integrator docs.
 
 | Route class | Embed | Hosted |
 |---|---|---|
-| `check`, admin, generic events | Same-app / optional secret | `Authorization: Bearer kyo_live_…` |
+| `check`, `subjects.ensure`, admin, generic events | Same-app / optional secret | `Authorization: Bearer kyo_live_…` |
 | Provider webhooks | Provider signature | Provider signature |
 | JWKS | Public | Public |
 
@@ -20,11 +20,14 @@ Request:
 {
   "subject": "user_ada",
   "feature": "export.png",
-  "used": 3
+  "used": 3,
+  "lazyCreate": false
 }
 ```
 
-`used` optional. `subject` = alias value or `sub_…`.
+`used` optional. `subject` = alias value or `sub_…`. `lazyCreate` optional, default `false`.
+
+Unknown subject → `404 subject_not_found`. With `lazyCreate: true`, an unknown alias creates a `free`/`defaultPlan` subject and `auth` alias. `sub_…` ids are never created implicitly; an unknown id still 404s. An empty plan store → `503 plans_not_configured`.
 
 Response:
 
@@ -46,7 +49,28 @@ Response:
 
 Deny still returns a signed `token` when possible.
 
-In-process: `api.check({ subject, feature, used? })`.
+In-process: `api.check({ subject, feature, used?, lazyCreate? })`.
+
+## `POST /v1/subjects`
+
+Request:
+
+```json
+{
+  "aliases": [
+    { "kind": "auth", "value": "user_ada" },
+    { "kind": "stripe", "value": "cus_ada" }
+  ]
+}
+```
+
+Response:
+
+```json
+{ "subjectId": "sub_01HZX…", "created": true }
+```
+
+Idempotent ensure. Creates a `free`/`defaultPlan` subject only if no alias matches; never changes billing state. Alias owned by another subject → `409 alias_conflict`; malformed aliases → `400 invalid_input`.
 
 ## `POST /v1/events` (generic ingress)
 
@@ -55,6 +79,7 @@ Request (conceptual):
 ```json
 {
   "idempotencyKey": "evt_custom_1",
+  "subjectId": "sub_01HZX…",
   "aliases": [
     { "kind": "auth", "value": "user_ada" },
     { "kind": "stripe", "value": "cus_ada" }
@@ -67,6 +92,13 @@ Request (conceptual):
 ```
 
 Creates/links subject + aliases; applies billing state. Idempotent on `idempotencyKey`.
+
+- `subjectId` targets an existing subject; unknown id → `404 subject_not_found`. Never creates.
+- `aliases` are optional only when `subjectId` is present. With `subjectId`, matching aliases are linked atomically before state is applied.
+- Without `subjectId`, at least one alias is required and a missing subject is created.
+- Alias owned by another subject → `409 alias_conflict` before billing state changes.
+
+Response includes `applied`, `duplicate`, `subjectId`, and `created` (`true` only when the event created the subject).
 
 ## `POST /webhooks/stripe` (plugin)
 
@@ -85,8 +117,9 @@ JWKS document listing public keys with `kid`.
 
 ### Subjects / aliases / overrides
 
-- `subjects.get(subjectOrAlias)`
-- `aliases.add({ subject, kind, value })` / `aliases.remove(…)`
+- `subjects.ensure({ aliases })`
+- `subjects.get(subjectOrAlias)` → `null` when missing; no implicit creation
+- `aliases.add({ subject, kind, value })` / `aliases.remove(…)`; `add` does not create subjects
 - `subjects.setOverride({ subject, feature, enabled?, limit? })`
 - `subjects.clearOverride({ subject, feature })`
 
@@ -110,7 +143,10 @@ Algorithm: **ES256**. Default TTL: **1h**.
 
 | Case | Behavior |
 |---|---|
-| `planStore: database` and no plans | 500/config error with explicit message |
+| Unknown subject on `check` without `lazyCreate` | `404 subject_not_found` |
+| Plan store has no plans | `503 plans_not_configured` |
+| Alias belongs to another subject | `409 alias_conflict` |
+| Malformed aliases / event / lazy flag | `400 invalid_input` / route-specific 400 |
 | Invalid provider signature | 401/400 |
-| Duplicate event | 200 no-op |
+| Duplicate event | 200 no-op, `created: false` |
 | Unknown feature on entitled plan | `allowed: false`, reason `unknown_feature` or treat as deny |

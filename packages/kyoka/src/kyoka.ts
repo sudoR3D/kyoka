@@ -2,6 +2,7 @@ import * as admin from "./admin.js";
 import { runCheck } from "./check.js";
 import { applyBillingEvent } from "./events.js";
 import { createHandler } from "./handler.js";
+import { ensureSubject } from "./subjects.js";
 import type { KyokaInstance, KyokaOptions } from "./types.js";
 
 export function kyoka(options: KyokaOptions): KyokaInstance {
@@ -30,6 +31,7 @@ export function kyoka(options: KyokaOptions): KyokaInstance {
         delete: (slug) => admin.deletePlan(options, slug),
       },
       subjects: {
+        ensure: (input) => ensureSubject(options, input),
         get: (subjectOrAlias) => admin.getSubject(options, subjectOrAlias),
         setOverride: (input) => admin.setOverride(options, input),
         clearOverride: (input) => admin.clearOverride(options, input),
