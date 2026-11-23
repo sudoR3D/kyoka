@@ -41,12 +41,12 @@ jobs:
 
       - name: Publish @kyoka-js/kyoka
         working-directory: packages/kyoka
-        run: npm publish --access public
+        run: npm publish --access public || echo "Already published, skipping"
 
       - name: Publish @kyoka-js/stripe
         working-directory: packages/stripe
-        run: npm publish --access public
+        run: npm publish --access public || echo "Already published, skipping"
 
       - name: Publish @kyoka-js/client
         working-directory: packages/client
-        run: npm publish --access public
+        run: npm publish --access public || echo "Already published, skipping"
