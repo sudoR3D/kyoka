@@ -46,3 +46,7 @@ jobs:
       - name: Publish @kyoka-js/stripe
         working-directory: packages/stripe
         run: npm publish --access public
+
+      - name: Publish @kyoka-js/client
+        working-directory: packages/client
+        run: npm publish --access public
