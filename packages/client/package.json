@@ -1,6 +1,6 @@
 {
   "name": "@kyoka-js/client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typed HTTP client for the Kyoka entitlement API (Cloud + self-hosted)",
   "license": "MIT",
   "type": "module",
